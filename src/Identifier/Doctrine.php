@@ -11,10 +11,8 @@
 
 namespace Indigo\Guardian\Identifier;
 
-use Assert\Assertion;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\EntityRepository;
-use Indigo\Guardian\Caller\User\Simple as SimpleUser;
 use Indigo\Guardian\Exception\IdentificationFailed;
 
 /**
@@ -47,7 +45,9 @@ class Doctrine implements LoginTokenIdentifier
      */
     public function identify(array $subject)
     {
-        Assertion::notEmptyKey($subject, 'username');
+        if (empty($subject['username'])) {
+            throw new \InvalidArgumentException('Subject must contain a username');
+        }
 
         $criteria = ['username' => $subject['username']];
 
