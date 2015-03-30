@@ -2,7 +2,7 @@
     "name": "indigophp/guardian-doctrine",
     "description": "Doctrine integration for Guardian",
     "license": "MIT",
-    "keywords": ["guardian", "doctrinw"],
+    "keywords": ["guardian", "doctrine"],
     "homepage": "https://indigophp.com",
     "authors": [
         {
