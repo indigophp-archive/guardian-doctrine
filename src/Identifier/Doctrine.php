@@ -31,6 +31,20 @@ class Doctrine implements LoginTokenIdentifier
     protected $entity;
 
     /**
+     * A set of fields which MUST be included in the subject
+     *
+     * @var string[]
+     */
+    protected $identificationFields = ['username'];
+
+    /**
+     * A field where login token is stored
+     *
+     * @var string
+     */
+    protected $loginTokenField = 'loginToken';
+
+    /**
      * @param EntityManagerInterface $entityManager
      * @param string                 $entity
      */
@@ -45,11 +59,7 @@ class Doctrine implements LoginTokenIdentifier
      */
     public function identify(array $subject)
     {
-        if (empty($subject['username'])) {
-            throw new \InvalidArgumentException('Subject must contain a username');
-        }
-
-        $criteria = ['username' => $subject['username']];
+        $criteria = $this->buildIdentificationCriteria($subject);
 
         $repository = $this->getRepository();
         $caller = $repository->findOneBy($criteria);
@@ -67,13 +77,61 @@ class Doctrine implements LoginTokenIdentifier
     public function identifyByLoginToken($loginToken)
     {
         $repository = $this->getRepository();
-        $caller = $repository->find($loginToken);
+        $caller = $repository->findOneBy([$this->loginTokenField => $loginToken]);
 
         if (!$caller) {
             throw new IdentificationFailed('User not found');
         }
 
         return $caller;
+    }
+
+    /**
+     * Sets the identification fields
+     *
+     * @param array $fields
+     */
+    public function setIdentificationFields(array $fields)
+    {
+        $this->identificationFields = $fields;
+    }
+
+    /**
+     * Sets the login token field
+     *
+     * @param string $field
+     */
+    public function setLoginTokenField($field)
+    {
+        $this->loginTokenField = (string) $field;
+    }
+
+    /**
+     * Checks if all identification field is included in the subject and builds a criteria
+     *
+     * @param array $subject
+     *
+     * @return array
+     *
+     * @throws \InvalidArgumentException If one of the fields is missing
+     */
+    protected function buildIdentificationCriteria(array $subject)
+    {
+        $criteria = [];
+
+        foreach ($this->identificationFields as $dbField => $subjectField) {
+            if (empty($subject[$subjectField])) {
+                throw new \InvalidArgumentException(sprintf('Subject must contain a(n) "%s" field', $subjectField));
+            }
+
+            if (is_numeric($dbField)) {
+                $dbField = $subjectField;
+            }
+
+            $criteria[$dbField] = $subject[$subjectField];
+        }
+
+        return $criteria;
     }
 
     /**

@@ -2,15 +2,14 @@
 
 namespace spec\Indigo\Guardian\Identifier;
 
-use Doctrine\ORM\EntityManagerInterface as EntityManager;
+use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\EntityRepository;
 use Indigo\Guardian\Caller\User\Simple as User;
 use PhpSpec\ObjectBehavior;
-use Prophecy\Argument;
 
 class DoctrineSpec extends ObjectBehavior
 {
-    function let(EntityManager $entityManager)
+    function let(EntityManagerInterface $entityManager)
     {
         $this->beConstructedWith($entityManager, 'Indigo\Guardian\Caller\User\Simple');
     }
@@ -26,7 +25,7 @@ class DoctrineSpec extends ObjectBehavior
         $this->shouldImplement('Indigo\Guardian\Identifier');
     }
 
-    function it_identifies_a_caller(EntityManager $entityManager, EntityRepository $entityRepository, User $user)
+    function it_identifies_a_caller(EntityManagerInterface $entityManager, EntityRepository $entityRepository, User $user)
     {
         $criteria = ['username' => 'john_doe'];
         $subject = $criteria;
@@ -43,12 +42,28 @@ class DoctrineSpec extends ObjectBehavior
         $caller->shouldImplement('Indigo\Guardian\Caller\User');
     }
 
-    function it_throws_an_exception_when_username_is_not_passed()
+    function it_accepts_identification_fields(EntityManagerInterface $entityManager, EntityRepository $entityRepository, User $user)
+    {
+        $this->setIdentificationFields([
+            'field1',
+            'field2',
+        ]);
+
+        $criteria = ['field1' => 'john_doe', 'field2' => 'secret_id'];
+        $subject = $criteria;
+
+        $entityManager->getRepository('Indigo\Guardian\Caller\User\Simple')->willReturn($entityRepository);
+        $entityRepository->findOneBy($criteria)->willReturn($user);
+
+        $this->identify($subject);
+    }
+
+    function it_throws_an_exception_when_an_identification_field_is_not_passed()
     {
         $this->shouldThrow('InvalidArgumentException')->duringIdentify([]);
     }
 
-    function it_throws_an_exception_when_username_is_not_found(EntityManager $entityManager, EntityRepository $entityRepository)
+    function it_throws_an_exception_when_a_user_is_not_found(EntityManagerInterface $entityManager, EntityRepository $entityRepository)
     {
         $subject = ['username' => 'jane_doe'];
 
@@ -58,10 +73,10 @@ class DoctrineSpec extends ObjectBehavior
         $this->shouldThrow('Indigo\Guardian\Exception\IdentificationFailed')->duringIdentify($subject);
     }
 
-    function it_identifies_a_caller_by_login_token(EntityManager $entityManager, EntityRepository $entityRepository, User $user)
+    function it_identifies_a_caller_by_login_token(EntityManagerInterface $entityManager, EntityRepository $entityRepository, User $user)
     {
         $entityManager->getRepository('Indigo\Guardian\Caller\User\Simple')->willReturn($entityRepository);
-        $entityRepository->find(1)->willReturn($user);
+        $entityRepository->findOneBy(['loginToken' => 1])->willReturn($user);
 
         $caller = $this->identifyByLoginToken(1);
 
@@ -70,10 +85,20 @@ class DoctrineSpec extends ObjectBehavior
         $caller->shouldImplement('Indigo\Guardian\Caller\User');
     }
 
-    function it_throws_an_exception_when_cannot_identify_by_login_token(EntityManager $entityManager, EntityRepository $entityRepository)
+    function it_accepts_a_login_token_field(EntityManagerInterface $entityManager, EntityRepository $entityRepository, User $user)
+    {
+        $this->setLoginTokenField('id');
+
+        $entityManager->getRepository('Indigo\Guardian\Caller\User\Simple')->willReturn($entityRepository);
+        $entityRepository->findOneBy(['id' => 1])->willReturn($user);
+
+        $this->identifyByLoginToken(1);
+    }
+
+    function it_throws_an_exception_when_cannot_identify_by_login_token(EntityManagerInterface $entityManager, EntityRepository $entityRepository)
     {
         $entityManager->getRepository('Indigo\Guardian\Caller\User\Simple')->willReturn($entityRepository);
-        $entityRepository->find(0)->willReturn(null);
+        $entityRepository->findOneBy(['loginToken' => 0])->willReturn(null);
 
         $this->shouldThrow('Indigo\Guardian\Exception\IdentificationFailed')->duringIdentifyByLoginToken(0);
     }

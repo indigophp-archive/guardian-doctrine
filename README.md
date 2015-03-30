@@ -22,6 +22,20 @@ $ composer require indigophp/guardian-doctrine
 
 ## Usage
 
+Simply pass an `EntityManagerInterface` instance and an Entity class name to the `Indigo\Guardian\Identifier\Doctrine` class and you are good to go:
+
+``` php
+use Indigo\Guardian\Identifier\Doctrine;
+
+$identifier = new Doctrine($entityManager, 'Indigo\Guardian\Caller\User\Simple');
+
+// optional, ['username'] by default
+$identifier->setIdentificationFields(['username']);
+
+// optional, 'loginToken' by default
+$identifier->setLoginTokenField('id');
+```
+
 
 ## Testing
 
